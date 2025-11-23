@@ -7,8 +7,9 @@ cwd = os.getcwd()
 #Get the parent directory
 parent_dir = os.path.dirname(cwd)
 
-#Cleaned Dataset Folder Path
-cleaned_dataset_folder_path = os.path.join(parent_dir, 'Cleaned_Dataset')
+#Make a new folder for the Cleaned Dataset
+cleaned_dataset_folder_path = os.path.join(parent_dir, "Cleaned Dataset")
+os.makedirs(cleaned_dataset_folder_path, exist_ok = True)
 
 #Get the absolute path to the KFall Dataset folder, the label_data folder, and the sensor_data folder
 kfall_folder_path = os.path.join(parent_dir, "KFall Dataset")
