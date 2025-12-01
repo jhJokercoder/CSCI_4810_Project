@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import math
 
 #Get the current working directory 
 cwd = os.getcwd()
@@ -15,9 +16,6 @@ os.makedirs(cleaned_dataset_folder_path, exist_ok = True)
 kfall_folder_path = os.path.join(parent_dir, "KFall Dataset")
 labels_folder_path = os.path.join(kfall_folder_path, "label_data")
 sensor_data_folder_path = os.path.join(kfall_folder_path, "sensor_data")
-
-#Get the list of subfolders in the sensor_data folder
-sensor_data_subfolders_list = os.listdir(sensor_data_folder_path)
 
 #Get the list of files in the label_data folder
 label_data_files_list = os.listdir(labels_folder_path)
@@ -60,19 +58,6 @@ for file in label_data_files_list:
 		#Get the Task Code (Task ID)
 		task_code_task_id = label_dataframe.at[i, "Task Code (Task ID)"]
 
-		#Get the Trial ID 
-		trial_id_num = label_dataframe.at[i, "Trial ID"]
-
-		#Convert the Trial ID to a string and add 0 in front if the Trial ID is less than 10
-		if trial_id_num	< 10:
-			trial_id = '0' + str(trial_id_num)
-		else:
-			trial_id = str(trial_id_num)
-
-		#Get the Onset Frame and Impact Frame
-		onset_frame = label_dataframe.at[i, "Fall_onset_frame"]
-		impact_frame = label_dataframe.at[i, "Fall_impact_frame"]
-
 		#If the Task Code (Task ID) column has a null value then keep the current Task ID, if not then get the new Task ID
 		if pd.isnull(task_code_task_id):
 			task_id = current_task_id
@@ -83,6 +68,15 @@ for file in label_data_files_list:
 			task_id = first_split.split(')')[0]
 			current_task_id = task_id
 			task_ids.remove(task_id)
+
+		#Get the Trial ID 
+		trial_id_num = label_dataframe.at[i, "Trial ID"]
+
+		#Convert the Trial ID to a string and add 0 in front if the Trial ID is less than 10
+		if trial_id_num	< 10:
+			trial_id = '0' + str(trial_id_num)
+		else:
+			trial_id = str(trial_id_num)
 
 		#Get the sensor_data filename
 		sensor_data_filename = 'S' + subject_id + 'T' + task_id + 'R' + trial_id + '.csv'
@@ -96,16 +90,31 @@ for file in label_data_files_list:
 		#Find the number of rows in the Pandas Dataframe
 		num_of_rows_sensor_dataframe = len(sensor_dataframe)
 
-		#Create Label column
+		#Get the Onset Frame and Impact Frame
+		onset_frame = label_dataframe.at[i, "Fall_onset_frame"]
+		impact_frame = label_dataframe.at[i, "Fall_impact_frame"]
+
+		#Create the Acc_Mag, Gyr_Mag, Euler_Mag, and Label columns
+		acc_mag = []
+		gyr_mag = []
+		euler_mag = []
 		labels = []
 		for i in range(num_of_rows_sensor_dataframe):
+			#Calculate the acceleration, gyroscope, and euler angle magnitudes and append to the appropriate lists
+			acc_mag.append(math.sqrt(sensor_dataframe.at[i, "AccX"]**2 + sensor_dataframe.at[i, "AccY"]**2 + sensor_dataframe.at[i, "AccZ"]**2))
+			gyr_mag.append(math.sqrt(sensor_dataframe.at[i, "GyrX"]**2 + sensor_dataframe.at[i, "GyrY"]**2 + sensor_dataframe.at[i, "GyrZ"]**2))
+			euler_mag.append(math.sqrt(sensor_dataframe.at[i, "EulerX"]**2 + sensor_dataframe.at[i, "EulerY"]**2 + sensor_dataframe.at[i, "EulerZ"]**2))
+
 			#If the value in the FrameCounter column is between the onset_frame and impact_frame, inclusive, then append 1 to the labels list, if not then append 0
 			if sensor_dataframe.at[i, "FrameCounter"] >= onset_frame and sensor_dataframe.at[i, "FrameCounter"] <= impact_frame:
 				labels.append(1)
 			else:
 				labels.append(0)
 
-		#Create the Label column in the Pandas Dataframe, where the values in the labels list are the values for the Label column
+		#Create the Acc_Mag, Gyr_Mag, Euler_Mag, and Label column in the Pandas Dataframe
+		sensor_dataframe['Acc_Mag'] = acc_mag
+		sensor_dataframe['Gyr_Mag'] = gyr_mag
+		sensor_dataframe['Euler_Mag'] = euler_mag
 		sensor_dataframe['Label'] = labels
 
 		#Make a new subfolder path in the Cleaned Dataset folder, then make the new labeled csv file and add it to the subfolder in the Cleaned Dataset folder
@@ -118,6 +127,7 @@ for file in label_data_files_list:
 		t_id = 'T' + i
 
 		for sensor_file in sensor_data_subfolder_files_list:
+
 			#Get the Task Id from the filename
 			split_filename = sensor_file.split('T')[1]
 			id_num = split_filename.split('R')[0]
@@ -126,19 +136,31 @@ for file in label_data_files_list:
 			#If the Task Id in the filename is the same as the current Task Id then create labels that are all 0's, if not then pass
 			if t_id == compare_task_id:
 
-				labels2 = []
-
 				#Convert CSV file to Pandas Dataframe
 				sensor_dataframe2 = pd.read_csv(os.path.join(sensor_data_subfolder_path, sensor_file))
 
 				#Find the number of rows in the Pandas Dataframe
 				num_of_rows = len(sensor_dataframe2)
 
-				#Add 0 for every row in the sensor_dataframe2   
+				#Create the Acc_Mag, Gyr_Mag, Euler_Mag, and Label columns using these lists
+				acc_mag2 = []
+				gyr_mag2 = []
+				euler_mag2 = []
+				labels2 = []
+
 				for i in range(num_of_rows):
+					#Calculate the acceleration, gyroscope, and euler angle magnitudes and append to the appropriate lists
+					acc_mag2.append(math.sqrt(sensor_dataframe2.at[i, "AccX"]**2 + sensor_dataframe2.at[i, "AccY"]**2 + sensor_dataframe2.at[i, "AccZ"]**2))
+					gyr_mag2.append(math.sqrt(sensor_dataframe2.at[i, "GyrX"]**2 + sensor_dataframe2.at[i, "GyrY"]**2 + sensor_dataframe2.at[i, "GyrZ"]**2))
+					euler_mag2.append(math.sqrt(sensor_dataframe2.at[i, "EulerX"]**2 + sensor_dataframe2.at[i, "EulerY"]**2 + sensor_dataframe2.at[i, "EulerZ"]**2))
+
+					#Append 0 to the labels2 list
 					labels2.append(0)
 
-				#Create the Label column in the Pandas Dataframe, where the values in the labels2 list are the values for the Label column
+				#Create the Acc_Mag, Gyr_Mag, Euler_Mag, and Label column in the Pandas Dataframe
+				sensor_dataframe2['Acc_Mag'] = acc_mag2
+				sensor_dataframe2['Gyr_Mag'] = gyr_mag2
+				sensor_dataframe2['Euler_Mag'] = euler_mag2
 				sensor_dataframe2['Label'] = labels2
 
 				#Make the new labeled csv file and add it to the new subfolder in the Cleaned Dataset folder
